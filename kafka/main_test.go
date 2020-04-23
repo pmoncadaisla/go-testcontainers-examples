@@ -94,7 +94,7 @@ func TestNginxLatestReturn(t *testing.T) {
 			"KAFKA_LISTENERS":                        fmt.Sprintf("OUTSIDE://0.0.0.0:%s,INSIDE://0.0.0.0:9092", kafkaPort),
 			"KAFKA_LISTENER_SECURITY_PROTOCOL_MAP":   "OUTSIDE:PLAINTEXT,INSIDE:PLAINTEXT",
 			"KAFKA_INTER_BROKER_LISTENER_NAME":       "INSIDE",
-			"KAFKA_ZOOKEEPER_CONNECT":                fmt.Sprintf("%s:%d", zooAliases[networkName], 2181),
+			"KAFKA_ZOOKEEPER_CONNECT":                fmt.Sprintf("%s:%d", zooAliases[networkName][0], 2181),
 			"KAFKA_BROKER_ID":                        "1",
 			"KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR": "1",
 			"KAFKA_OFFSETS_TOPIC_NUM_PARTITIONS":     "1",
