@@ -47,7 +47,6 @@ func TestNginxLatestReturn(t *testing.T) {
 	// Create zookeeper container and we wait until it is listening
 	// at tcp/2181
 	reqZookeeper := testcontainers.ContainerRequest{
-		Name:         "zookeeper",
 		Image:        "wurstmeister/zookeeper",
 		ExposedPorts: []string{"2181/tcp"},
 		Networks: []string{
@@ -55,7 +54,7 @@ func TestNginxLatestReturn(t *testing.T) {
 		},
 		WaitingFor: wait.ForListeningPort("2181"),
 	}
-	_, err = testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
+	zooC, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
 		ContainerRequest: reqZookeeper,
 		Started:          true,
 	})
@@ -64,6 +63,11 @@ func TestNginxLatestReturn(t *testing.T) {
 	}
 
 	workingDir, err := os.Getwd()
+	if err != nil {
+		t.Error(err)
+	}
+
+	zooAliases, err := zooC.NetworkAliases(ctx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -77,8 +81,6 @@ func TestNginxLatestReturn(t *testing.T) {
 
 	req := testcontainers.ContainerRequest{
 		Image: kafkaImage + ":" + confluentPlatformVersion,
-		Name:  "kafka",
-
 		// This is very tricky
 		// We override container's startup command with a custom script
 		// This script waits until a firstly missing starter script is found. Then executes it.
@@ -92,6 +94,7 @@ func TestNginxLatestReturn(t *testing.T) {
 			"KAFKA_LISTENERS":                        fmt.Sprintf("OUTSIDE://0.0.0.0:%s,INSIDE://0.0.0.0:9092", kafkaPort),
 			"KAFKA_LISTENER_SECURITY_PROTOCOL_MAP":   "OUTSIDE:PLAINTEXT,INSIDE:PLAINTEXT",
 			"KAFKA_INTER_BROKER_LISTENER_NAME":       "INSIDE",
+			"KAFKA_ZOOKEEPER_CONNECT":                fmt.Sprintf("%s:%d", zooAliases[networkName], 2181),
 			"KAFKA_BROKER_ID":                        "1",
 			"KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR": "1",
 			"KAFKA_OFFSETS_TOPIC_NUM_PARTITIONS":     "1",
@@ -130,7 +133,7 @@ func TestNginxLatestReturn(t *testing.T) {
 	// This is the tricky part, now that the container is running we can run kafka
 	// knowing it's IP address
 	commandStr := `#!/bin/bash 
-	export KAFKA_ZOOKEEPER_CONNECT=zookeeper:2181
+	export 
 	export KAFKA_ADVERTISED_LISTENERS=INSIDE://%s:9092,OUTSIDE://%s:%s
 	/etc/confluent/docker/run
 	`
