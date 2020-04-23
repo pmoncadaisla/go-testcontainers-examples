@@ -10,8 +10,6 @@ import (
 
 	"log"
 
-	"io/ioutil"
-
 	"github.com/Shopify/sarama"
 
 	"github.com/testcontainers/testcontainers-go"
@@ -85,10 +83,7 @@ func TestNginxLatestReturn(t *testing.T) {
 		// We override container's startup command with a custom script
 		// This script waits until a firstly missing starter script is found. Then executes it.
 		// This script contains important configuration options wich must be filled after container has started (its IPaddress)
-		Cmd: []string{"sh", "-c", "while [ ! -f " + starterScriptContainerPath + " ]; do sleep 0.1; done; chmod +x " + starterScriptContainerPath + "; " + starterScriptContainerPath},
-		BindMounts: map[string]string{
-			workingDir: starterScriptContainerDir,
-		},
+		Cmd:          []string{"sh", "-c", "while [ ! -f " + starterScriptContainerPath + " ]; do sleep 0.1; done; chmod +x " + starterScriptContainerPath + "; " + starterScriptContainerPath},
 		ExposedPorts: []string{fmt.Sprintf("%s/tcp", kafkaPort)},
 		Networks: []string{
 			networkName,
@@ -141,9 +136,8 @@ func TestNginxLatestReturn(t *testing.T) {
 	`
 	command := fmt.Sprintf(commandStr, ip, host, port.Port())
 
-	// Once the startUp file is written, as it is binded to the container
-	// the container will read it and will continue with the start up
-	ioutil.WriteFile(starterScriptLocalPath, []byte(command), 0644)
+	// Write startup script in the container
+	kafkaC.Exec(ctx, []string{"sh", "-c", "echo '" + command + "' > " + starterScriptContainerPath})
 
 	topic := "topic"
 	value := "{ \"some_json_data\": 1 }"
