@@ -142,6 +142,12 @@ func TestNginxLatestReturn(t *testing.T) {
 	// Write startup script in the container
 	kafkaC.Exec(ctx, []string{"sh", "-c", "echo '" + command + "' > " + starterScriptContainerPath})
 
+	// Wait until kafka is up and ready
+	readyCommand := []string{"sh", "-c", "kafka-broker-api-versions  --bootstrap-server localhost:9092"}
+	for exitCode := -1; exitCode != 0; exitCode, _ = kafkaC.Exec(ctx, readyCommand) {
+		time.Sleep(250 * time.Millisecond)
+	}
+
 	topic := "topic"
 	value := "{ \"some_json_data\": 1 }"
 	brokerList := kafkaConnStr
@@ -202,7 +208,7 @@ func TestNginxLatestReturn(t *testing.T) {
 		fmt.Printf("Key:\t%s\n", string(msg.Key))
 		fmt.Printf("Value:\t%s\n", string(msg.Value))
 		fmt.Println()
-		break
+		pc.Close()
 	}
 
 	if err := c.Close(); err != nil {
